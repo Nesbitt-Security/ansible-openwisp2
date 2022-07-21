@@ -2,7 +2,22 @@ from django.urls import include, path, reverse_lazy
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic import RedirectView
-
+{% if openwisp2_firmware_upgrader %}
+# When using S3_REVERSE_PROXY feature of django-private-storage,
+# the storage backend reverse the "serve_private_file" URL
+# pattern in order to proxy the file with the correct URL.
+from openwisp_firmware_upgrader.private_storage.urls import (
+    urlpatterns as fw_private_storage_urls,
+)
+{% endif %}
+{% if openwisp2_radius and openwisp2_radius_urls %}
+# When using S3_REVERSE_PROXY feature of django-private-storage,
+# the storage backend reverse the "serve_private_file" URL
+# pattern in order to proxy the file with the correct URL.
+from openwisp_radius.private_storage.urls import (
+    get_private_store_urls as radius_get_private_store_urls,
+)
+{% endif %}
 redirect_view = RedirectView.as_view(url=reverse_lazy('admin:index'))
 
 urlpatterns = [
@@ -17,12 +32,20 @@ urlpatterns = [
 {% endif %}
 {% if openwisp2_firmware_upgrader %}
     path('', include('openwisp_firmware_upgrader.urls')),
+    path(
+        '',
+        include((fw_private_storage_urls, 'firmware'), namespace='firmware'),
+    ),
 {% endif %}
 {% if openwisp2_monitoring %}
     path('', include('openwisp_monitoring.urls')),
 {% endif %}
 {% if openwisp2_radius and openwisp2_radius_urls %}
     path('', include('openwisp_radius.urls')),
+    path(
+        '',
+        include((radius_get_private_store_urls(), 'radius'), namespace='radius'),
+    ),
 {% endif %}
 {% for extra_url in openwisp2_extra_urls %}
     {{ extra_url }},
